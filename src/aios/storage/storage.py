@@ -45,6 +45,12 @@ class UserConfig:
         self._init_default_value("llm_outline_model","gpt-3.5-turbo")
         self._init_default_value("llm_swift_model","gpt-3.5-turbo")
 
+        # add two abstract model types
+        self._init_default_value("llm_reason_model","o3")
+        self._init_default_value("llm_code_model","gpt-4.1")
+
+
+
     def _init_default_value(self,key:str,value:Any) -> None:
         if self.config_table.get(key) is not None:
             logger.warning("user config key %s already exist, will be overrided",key)
@@ -60,6 +66,11 @@ class UserConfig:
         plan_llm_model_name = self.get_value("llm_plan_model")
         outline_model_name = self.get_value("llm_outline_model")
         swift_model_name = self.get_value("llm_swift_model")
+
+        # add two abstract model types
+        reason_model_name = self.get_value("llm_reason_model")
+        code_model_name = self.get_value("llm_code_model")
+
         if mode_name is None:
             return default_model_name
         if mode_name == "default":
@@ -70,6 +81,12 @@ class UserConfig:
             return outline_model_name
         if mode_name == "swift_llm":
             return swift_model_name
+
+        # add two abstract model types
+        if mode_name == "reason_llm":
+            return reason_model_name
+        if mode_name == "code_llm":
+            return code_model_name
         
         return mode_name
     def add_user_config(self,key:str,desc:str,is_optional:bool,default_value:Any=None,item_type="str") -> None:
