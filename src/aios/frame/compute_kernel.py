@@ -87,6 +87,12 @@ class ComputeKernel:
             f"task {task.display()} is not support by any compute node")
         return None
 
+    def _cost_fitst_schedule(self, task: ComputeTask) -> ComputeNode:
+        """
+        Schedule the task to the compute node with the lowest cost.
+        """
+        pass
+
     def add_compute_node(self, node: ComputeNode):
         if self.compute_nodes.get(node.node_id) is not None:
             logger.warn(
@@ -123,6 +129,23 @@ class ComputeKernel:
     def llm_num_tokens(prompt: LLMPrompt, model_name: str = None) -> int:
         return ComputeKernel.llm_num_tokens_from_text(prompt.as_str(), model_name)
 
+    @staticmethod
+    def llm_token_price(model_name: str = None) -> float:
+        """
+        Returns the price per 1K tokens for the specified model.
+        If model_name is None, returns the default model's price.
+        """
+        pass
+
+    @staticmethod
+    def llm_tokens_cost(prompt: LLMPrompt, model_name: str = None) -> float:
+        """
+        Returns the cost of the prompt in USD.
+        1. Computes the number of tokens in the prompt.
+        2. Retrieves the price per 1K tokens for the specified model.
+        3. Calculates the cost based on the number of tokens and the price per 1K tokens.
+        """
+        pass
 
     # friendly interface for use:
     def llm_completion(self, prompt: LLMPrompt, resp_mode:str="text",model_name: Optional[str] = None, max_token: int = 0,inner_functions = None):
