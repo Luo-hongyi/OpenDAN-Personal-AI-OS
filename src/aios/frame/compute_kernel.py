@@ -40,6 +40,7 @@ class ComputeKernel:
             return
         # add task to working_queue
         self.task_queue.put_nowait(task)
+        print(f"compute_kernel add task: {task.display()} to queue")
 
     async def start(self):
         if self.is_start is True:
@@ -50,7 +51,9 @@ class ComputeKernel:
 
         async def _run_task_loop():
             while True:
+                print("compute_kernel is waiting...")
                 task = await self.task_queue.get()
+                print(f"compute_kernel get task: {task.display()}")
                 logger.info(f"compute_kernel get task: {task.display()}")
                 c_node: ComputeNode = self._schedule(task)
                 if c_node:
@@ -151,8 +154,10 @@ class ComputeKernel:
     def llm_completion(self, prompt: LLMPrompt, resp_mode:str="text",model_name: Optional[str] = None, max_token: int = 0,inner_functions = None):
         # craete a llm_work_task ,push on queue's end
         # then task_schedule would run this task.(might schedule some work_task to another host)
+        print(f"llm_completion: {prompt.as_str()}")
         task_req = ComputeTask()
         task_req.set_llm_params(prompt,resp_mode,model_name, max_token,inner_functions)
+        print("set llm params:", task_req.params)
         self.run(task_req)
         return task_req
 
@@ -185,6 +190,7 @@ class ComputeKernel:
 
 
     async def do_llm_completion(self, prompt: LLMPrompt,resp_mode:str="text", mode_name: Optional[str]=None, max_token:int=0, inner_functions=None, timeout=60) -> str:
+        print(f"do_llm_completion: {prompt.as_str()}")
         task_req = self.llm_completion(prompt, resp_mode,mode_name, max_token,inner_functions)
         return await self._wait_task(task_req, timeout)
 
