@@ -23,18 +23,16 @@ print("package loaded")
 
 # initialize the OpenAI compute node
 node = OpenAI_ComputeNode()
-OpenAI_ComputeNode._instance = node
 
 # start the compute kernel and process the test message in a single event loop
 kernel = ComputeKernel()
-ComputeKernel._instance = kernel
 
 # Mock Agent Memory
 memory = AgentMemory(agent_id="test_agent", base_dir="./tmp")
 
 # Mock Agent Message
 msg = AgentMsg()
-msg.body = "黑色光是什么"
+msg.body = "test message"
 msg.topic = "test"
 msg.sender = "test_sender"
 input = {}
@@ -42,18 +40,15 @@ input["msg"] = msg
 
 # creat a test process
 test_process = AgentMessageProcess()
-test_process.model_name = "swift_llm"
+test_process.model_name = "switch_llm"
 test_process.memory = memory
 test_process.llm_context = SimpleLLMContext()
 test_process.timeout = 60
 
 async def main():
-	node.start()
-	print("Node started")
 	kernel.add_compute_node(node)
 	await kernel.start()
 	print("Kernel started")
-	result = await test_process.process(input)
-	print(result.resp)
+	await test_process.process(input)
 if __name__ == "__main__":
 	asyncio.run(main())

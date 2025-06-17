@@ -179,6 +179,7 @@ class BaseLLMProcess(ABC):
         #if max_result_token < MIN_PREDICT_TOKEN_LEN:
         #    return LLMResult.from_error_str(f"prompt too long,can not prprintedict")
         logger.info(f"do_llm_completion with max_result_token:{max_result_token},resp_mode:{resp_mode},prompt:{prompt}")
+        print(f"do_llm_completion with max_result_token:{max_result_token},resp_mode:{resp_mode},prompt:{prompt}")
         task_result: ComputeTaskResult = await (ComputeKernel.get_instance().do_llm_completion(
                 prompt,
                 resp_mode=resp_mode,
