@@ -10,7 +10,7 @@ import chardet
 
 from ..proto.agent_task import *
 from ..proto.ai_function import *
-from ..proto.compute_task import *
+from ..proto.compute_task_test import *
 from ..agent.agent_base import *
 
 from ..storage.storage import AIStorage,ResourceLocation

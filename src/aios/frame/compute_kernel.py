@@ -6,7 +6,7 @@ import asyncio
 import tiktoken
 from asyncio import Queue
 
-from ..proto.compute_task import *
+from ..proto.compute_task_test import *
 from ..knowledge import ObjectID
 from ..storage.storage import AIStorage
 
@@ -67,11 +67,12 @@ class ComputeKernel:
 
         for node in self.compute_nodes.values():
             if node.is_support(task) is True:
+                weight = node.weight() if node.weight() is not None else 0
                 support_nodes.append({
                     "pos": total_weights,
                     "node": node
                 })
-                total_weights += node.weight()
+                total_weights += weight
 
         if len(support_nodes) < 1:
             logger.warning(f"task {task.display()} is not support by any compute node")

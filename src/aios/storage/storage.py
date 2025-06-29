@@ -5,6 +5,9 @@ import logging
 import toml
 import aiofiles
 
+# fetching model price
+import litellm
+
 logger = logging.getLogger(__name__)
 
 _file_dir = os.path.dirname(__file__)
@@ -41,13 +44,13 @@ class UserConfig:
         self.user_config_path:str = None
 
         self._init_default_value("llm_default_model","gpt-4o")
-        self._init_default_value("llm_plan_model","gpt-4o")
-        self._init_default_value("llm_outline_model","gpt-3.5-turbo")
-        self._init_default_value("llm_swift_model","gpt-3.5-turbo")
+        self._init_default_value("llm_plan_models",["gpt-4o"])
+        self._init_default_value("llm_outline_models",["gpt-3.5-turbo"])
+        self._init_default_value("llm_swift_models",["gpt-3.5-turbo"])
 
         # add two abstract model types
-        self._init_default_value("llm_reason_model","o3")
-        self._init_default_value("llm_code_model","gpt-4.1")
+        self._init_default_value("llm_reason_models",["o3"])
+        self._init_default_value("llm_code_models",["gpt-4.1"])
 
 
 
@@ -60,16 +63,55 @@ class UserConfig:
         new_config_item.is_optional = True
         self.config_table[key] = new_config_item
 
+    
+    def sort_llm_models_by_cost(self,key:str):
+        if key not in ["llm_plan_models", "llm_outline_models", "llm_swift_models", "llm_reason_models", "llm_code_models"]:
+            logger.warning("Invalid key for sorting LLM models: %s", key)
+            return
+        models = self.get_value(key)
+        if models is None or not isinstance(models, list):
+            logger.warning("No valid models found for key: %s", key)
+            return
+        if len(models) == 1:
+            return
+        try:
+            # keep the first model as it is the default highest performance model
+            sorted_models = [models[0]]
+            # Fetch the cost for each model
+            models_with_cost = []
+            for model in models:
+                try:
+                    cost = litellm.model_cost.get(model)["input_cost_per_token"]
+                    models_with_cost.append((model, cost))
+                except Exception as e:
+                    logger.error(f"Failed to get cost for model {model}: {str(e)}")
+                    continue
+            # Sort models by cost
+            models_with_cost.sort(key=lambda x: x[1])
+            # Update the config with sorted models
+            sorted_models.extend([model for model, cost in models_with_cost])
+            self.set_value(key, sorted_models)
+            logger.info(f"Models for {key} sorted by cost: {sorted_models}")
+        except Exception as e:
+            logger.error(f"Error sorting models for {key}: {str(e)}")
+            return
+        
 
-    def llm_get_real_model_name(self,mode_name:str) -> str:
-        default_model_name = self.get_value("llm_default_model")
-        plan_llm_model_name = self.get_value("llm_plan_model")
-        outline_model_name = self.get_value("llm_outline_model")
-        swift_model_name = self.get_value("llm_swift_model")
+    def llm_get_real_model_name(self,mode_name:str,mode="performance_first") -> str:
+        choice_index = 0
+        if mode == "performance_first":
+            choice_index = 0
+        elif mode == "cost_first":
+            choice_index = -1
+            
+        default_model_name = self.get_value("llm_default_model")[choice_index]
+        plan_llm_model_name = self.get_value("llm_plan_models")[choice_index]
+        outline_model_name = self.get_value("llm_outline_models")[choice_index]
+        swift_model_name = self.get_value("llm_swift_models")[choice_index]
 
         # add two abstract model types
-        reason_model_name = self.get_value("llm_reason_model")
-        code_model_name = self.get_value("llm_code_model")
+        reason_model_name = self.get_value("llm_reason_models")[choice_index]
+        code_model_name = self.get_value("llm_code_models")[choice_index]
 
         if mode_name is None:
             return default_model_name
@@ -89,6 +131,7 @@ class UserConfig:
             return code_model_name
         
         return mode_name
+    
     def add_user_config(self,key:str,desc:str,is_optional:bool,default_value:Any=None,item_type="str") -> None:
         if self.config_table.get(key) is not None:
             logger.warning("user config key %s already exist, will be overrided",key)

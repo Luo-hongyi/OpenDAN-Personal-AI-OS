@@ -15,7 +15,7 @@ import sys
 from ..proto.agent_msg import AgentMsg
 from ..proto.ai_function import *
 from ..proto.agent_task import AgentTaskState,AgentTask,AgentTodo, AgentTodoState
-from ..proto.compute_task import *
+from ..proto.compute_task_test import *
 
 from .agent_base import *
 from .llm_process import *

@@ -5,7 +5,7 @@ import os.path
 from .chatsession import AIChatSession
 from ..utils import video_utils,image_utils
 
-from ..proto.compute_task import LLMPrompt,LLMResult,ComputeTaskResult,ComputeTaskResultCode
+from ..proto.compute_task_test import LLMPrompt,LLMResult,ComputeTaskResult,ComputeTaskResultCode
 from ..proto.ai_function import AIFunction,AIAction,ActionNode
 from ..proto.agent_msg import AgentMsg,AgentMsgType
 
