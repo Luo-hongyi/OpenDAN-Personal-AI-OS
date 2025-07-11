@@ -27,6 +27,7 @@ class AgentMsgStatus(Enum):
     RECVED = 5
     EXECUTED = 6
 
+
 # msg is a msg / msg resp
 # msg body可以有内容类型（MIME标签），text, image, voice, video, file,以及富文本(html)
 # msg is a inner function call with result
@@ -38,12 +39,12 @@ class AgentMsgStatus(Enum):
 
 # 逻辑上的同一个Message在同一个session中看到的msgid相同
 #       在不同的session中看到的msgid不同
+        
 
 class AgentMsg:
     def __init__(self,msg_type=AgentMsgType.TYPE_MSG) -> None:
         self.msg_id = "msg#" + uuid.uuid4().hex
         self.msg_type:AgentMsgType = msg_type
-
         self.prev_msg_id:str = None
         self.quote_msg_id:str = None
         self.rely_msg_id:str = None # if not none means this is a respone msg
@@ -60,8 +61,9 @@ class AgentMsg:
         self.target:str = None
         self.mentions:[] = None #use in group chat only
         #self.title:str = None
+
         self.body:str = None
-        self.body_mime:str = "text/plain" #//default is "text/plain",encode is utf8
+        self.NDN_ids:Dict[str, str] = {}  # key is the reference, value is NDNData name
 
         #type is call / action
         self.func_name = None
@@ -80,9 +82,7 @@ class AgentMsg:
 
         #context info
         self.context_info:dict= {}
-
-        # 附件字典，键为附件的唯一名称/ID，值为包含MIME和内容的数据包
-        self.attach_file: Dict[str, Dict[str, Any]] = {}
+        
 
     @classmethod
     def from_json(cls,json_obj:dict) -> 'AgentMsg':
@@ -143,18 +143,19 @@ class AgentMsg:
         resp_msg.sender = sender_id
         resp_msg.body = resp_body
         resp_msg.topic = self.topic
-
         return resp_msg
 
-    def set(self,sender:str,target:str,body:str,topic:str=None,body_mime:str=None) -> None:
+    def set(self,sender:str,target:str,body:str,topic:str=None, NDN_ids:Dict[str, str]=None) -> None:
         self.sender = sender
         self.target = target
         self.body = body
-        self.body_mime = body_mime
         self.create_time = time.time()
         if topic:
             self.topic = topic
-
+        if NDN_ids:
+            self.NDN_ids = NDN_ids
+    
+    """
     @staticmethod
     def create_image_body(images: [str], prompt: str = None):
         return json.dumps({"images": images, "prompt": prompt}, ensure_ascii=False)
@@ -250,6 +251,7 @@ class AgentMsg:
         if self.body_mime.startswith("audio/"):
             return True
         return False
+    """
 
     def get_msg_id(self) -> str:
         return self.msg_id
