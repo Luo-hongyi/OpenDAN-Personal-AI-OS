@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 import uuid
 import time
 import json
@@ -31,20 +31,22 @@ class AttachmentType(Enum):
 
 class ProductType(Enum):
     KNOWLEDGE = 0
+    LOG = 1
+    NDN = 2
 
 class AgentMsg(ABC):
     def __init__(self):
         self.msg_id = "msg#" + uuid.uuid4().hex
-        self.source:str = None
+        self.source:str = None # source can be User, Agent, System, Provider, etc.
         self.targets:List[str] = None
+
         self.session_id:str = None
+        self.prev_msg_id:str = None
 
         self.create_time = 0
         self.done_time = 0
 
         self.status:AgentMsgStatus = AgentMsgStatus.INIT
-
-
 class InstructionMsg(AgentMsg):
     def __init__(self, instructions:List[Dict[InstructionType, Any]], attachments:List[Dict[AttachmentType, Any]] = None):
         super().__init__()
