@@ -18,78 +18,69 @@ class ReceiverType(Enum):
     AGENT = "Agent"
     GROUP = "Group"  # For group messages
     ALL = "All"      # For broadcast messages
-class PayloadType(Enum):
-    CALL = "call"
-    INTERNAL_CALL = "internal_call"
-    OBJECT = "object"      # e.g. knowledge assets (NDN data)
-    REQUEST = "request"
-    RESPONSE = "response"
-    BROADCAST = "broadcast"
+class MessageType(Enum):
+    # message type describe the intent of the message, payload of the message varies by type
+    DEFAULT = "default"
+    CALL = "call" # ask the agent to action
+    INTERNAL_CALL = "internal_call" # the agent self calls itself
+    OBJECT = "object" # any object, e.g. file, image, NDN name, etc.
+    REQUEST = "request" # request for some response
+    RESPONSE = "response" # response to a request
+    BROADCAST = "broadcast" # broadcast message to all agents
 
 class CallAction(Enum):
+    # actions that can be performed by the agent
+    DEFAULT = "default"
     WAIT = "wait"
     START_PROCESSING = "start_processing"
     START_CALLING = "start_calling"
     ACTIVATE = "activate"
     DEACTIVATE = "deactivate"
-    # Add other actions as needed
+    UPDATE = "update"
 
-# Metadata section
+class ContextType(Enum):
+    # context type describe the relationship between the message and the context
+    ATTACHMENT = "attachment"
+    MENTION = "mention"
+    QUOTE = "quote"
+    REPLY = "reply"
+    FORWARD = "forward"
 
-@dataclass
-class Metadata:
-    msg_id: str = field(default_factory=lambda: "msg#" + uuid.uuid4().hex)
-    msg_hash_id: Optional[str] = None  # NDN id
-    ts: float = field(default_factory=time.time)
-    last_changed_ts: float = field(default_factory=time.time)
-    sender: Optional[Dict[SenderType, str]] = field(default_factory=dict)
-    receivers: Optional[Dict[ReceiverType, str]] = field(default_factory=dict)
-    mention: Optional[str] = None
-    session_id: Optional[str] = None
-
-# Content payload section
-
-@dataclass
-class Payload:
-    type: PayloadType = None
-    # For CALL type payloads: 
-    action: Optional[CallAction] = None
-    # For REQUEST/RESPONSE/BROADCAST types:
-    content: Optional[Any] = None
-    expect_response_interval: Optional[float] = None  # only for REQUEST
-    response_interval: Optional[float] = None           # only for RESPONSE
-
-# Context and reference sections
-
-@dataclass
-class Context:
-    topic: Optional[str] = None          # session topic
-    thread_topic: Optional[str] = None   # message thread topic
-
-@dataclass
-class Reference:
-    ndn_list: Optional[List[str]] = field(default_factory=list)  # list of referenced NDN objects
-
-# Log section for reasoning trace and function chain
-
-@dataclass
-class LogInfo:
-    reasoning_trace: Optional[str] = None
-    function_call_chain: Optional[List[str]] = field(default_factory=list)
-
-# Control section for status
-
-@dataclass
-class Control:
-    status: Optional[str] = None
-
-# Root message class combining all sections
-
-@dataclass
+class AgentMsgStatus(Enum):
+    RESPONSED = 0
+    INIT = 1
+    SENDING = 2
+    PROCESSING = 3
+    ERROR = 4
+    RECVED = 5
+    EXECUTED = 6
 class AgentMsg:
-    metadata: Metadata = field(default_factory=Metadata)
-    content: Payload = field(default_factory=Payload)
-    context: Context = field(default_factory=Context)
-    reference: Reference = field(default_factory=Reference)
-    log: LogInfo = field(default_factory=LogInfo)
-    control: Control = field(default_factory=Control)
+    # metadata
+    msg_id: str = "msg#" + uuid.uuid4().hex
+    msg_hash_id: str = None  # NDN id
+    ts: float = time.time()
+    last_changed_ts: float = time.time()
+    sender: Dict[SenderType, str] = {}
+    receivers: Dict[ReceiverType, str] = {}
+    mention: List[str] = None
+    session_id: str = None
+    thread_id: str = None  # For message threads
+
+    # payload
+    msg_type: MessageType = MessageType.DEFAULT
+    action: CallAction = None
+    content: Any = None  # Can be any type of content, e.g. text, object, etc.
+    expect_response_interval: float = None
+    response_interval: float = None
+
+    # External context
+    session_topic: str = None  # Topic for session management
+    thread_topic: str = None  # Topic for thread management
+    context_objects: Dict[ContextType,Any] = None
+
+    # Internal log
+    function_call_chain: List[str] = None
+    reasoning_chain: List[str] = None
+
+    # status of the message
+    status: AgentMsgStatus = AgentMsgStatus.INIT
