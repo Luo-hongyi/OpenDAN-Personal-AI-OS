@@ -31,20 +31,22 @@ class MessageType(Enum):
 class CallAction(Enum):
     # actions that can be performed by the agent
     DEFAULT = "default"
-    WAIT = "wait"
-    START_PROCESSING = "start_processing"
-    START_CALLING = "start_calling"
-    ACTIVATE = "activate"
-    DEACTIVATE = "deactivate"
-    UPDATE = "update"
+    WAIT = "wait" # the agent wait for more messages to come before processing
+    START = "start" # the agent starts processing the message
+    ACTIVATE = "activate" # the agent activate itself
+    DEACTIVATE = "deactivate" # the agent deactivate itself
+    UPDATE = "update" # the agent update itself
+    READ = "read" # the agent read an NDN data
+    FORWARD = "forward" # the agent forward the message to another agent
 
 class ContextType(Enum):
     # context type describe the relationship between the message and the context
-    ATTACHMENT = "attachment"
-    MENTION = "mention"
-    QUOTE = "quote"
-    REPLY = "reply"
-    FORWARD = "forward"
+    ATTACHMENT = "attachment" # 
+    MENTION = "mention" # mention a user or agent in the message
+    QUOTE = "quote" # quote a message
+    REPLY = "reply" # reply to a message
+    EXAMPLE = "example" # for few-shot prompting
+    FORMAT = "format" # format the message in a specific way
 
 class AgentMsgStatus(Enum):
     RESPONSED = 0
@@ -57,7 +59,7 @@ class AgentMsgStatus(Enum):
 class AgentMsg:
     # metadata
     msg_id: str = "msg#" + uuid.uuid4().hex
-    msg_hash_id: str = None  # NDN id
+    msg_NDN_id: str = None  # NDN id
     ts: float = time.time()
     last_changed_ts: float = time.time()
     sender: Dict[SenderType, str] = {}
@@ -84,3 +86,4 @@ class AgentMsg:
 
     # status of the message
     status: AgentMsgStatus = AgentMsgStatus.INIT
+    is_NDN_data: bool = False  # Whether the message is NDN data
