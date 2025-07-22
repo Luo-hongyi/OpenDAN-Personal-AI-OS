@@ -21,23 +21,23 @@ class ReceiverType(Enum):
 class MessageType(Enum):
     # message type describe the intent of the message, payload of the message varies by type
     DEFAULT = "default"
-    CALL = "call" # ask the agent to action
-    INTERNAL_CALL = "internal_call" # the agent self calls itself
+    CALL = "call" # ask the agent to perform some action
+    INTERNAL_CALL = "internal_call" # the agent self calls some function
     OBJECT = "object" # any object, e.g. file, image, NDN name, etc.
     REQUEST = "request" # request for some response
     RESPONSE = "response" # response to a request
     BROADCAST = "broadcast" # broadcast message to all agents
+    READ = "read" # the agent read a NDN data
 
 class CallAction(Enum):
     # actions that can be performed by the agent
     DEFAULT = "default"
-    WAIT = "wait" # the agent wait for more messages to come before processing
-    START = "start" # the agent starts processing the message
-    ACTIVATE = "activate" # the agent activate itself
-    DEACTIVATE = "deactivate" # the agent deactivate itself
-    UPDATE = "update" # the agent update itself
-    READ = "read" # the agent read an NDN data
-    FORWARD = "forward" # the agent forward the message to another agent
+    WAIT = "wait" # ask the agent to wait for more messages to come before processing
+    START = "start" # ask the agent to start processing the message
+    ACTIVATE = "activate" # ask the agent to activate itself
+    DEACTIVATE = "deactivate" # ask the agent to deactivate itself
+    UPDATE = "update" # ask the agent to update itself
+    FORWARD = "forward" # ask the agent to forward the message to another agent
 
 class ContextType(Enum):
     # context type describe the relationship between the message and the context
