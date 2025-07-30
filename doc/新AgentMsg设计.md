@@ -79,3 +79,46 @@ product：
 当Result Msg被创建时，其包含的product总是新鲜且未入库的。product：
 	1. 价值高：在使用完后入库转为NDN文件
 	2. 价值低：不进行入库
+
+
+不同payload：
+
+ToAgent
+
+AGENTREQUEST
+content:
+{
+	needed fileds:
+	
+	content_type: type of the content
+		1. Text
+		2. Formed Text(json / html)
+		3. Url
+		4. Encoded(base 64)
+		5. NDN
+	body: body of the content
+
+	optional fileds:
+	agent_action
+	
+}
+
+ToMachine
+
+MACHINECALL
+content：json包装的function call
+{
+	machine_id: name of the machine/service provider
+	function_id: name of the function
+	param: dict{param: dict{type, content}}
+}
+
+RESPONSE
+content:
+{
+	content_type
+	body: body of the content
+	
+	optional fileds:
+	msg: extra text message, include error/brief introduction
+}
