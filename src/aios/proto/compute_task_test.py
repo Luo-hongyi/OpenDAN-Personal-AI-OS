@@ -283,7 +283,7 @@ class ComputeTask:
         """the following fields are only used in compute kernel testing"""
         # task characteristics (per-task, independent of node)
         self.difficulty: float = 0.0  # 0-10
-        self.runtime_ms: float = 0.0  # baseline exec time at reference ability, not including queue wait
+        self.runtime_ms: float = 0.0  # execution time only (not including queue wait)
         self.input_tokens: int = 0  # for cost simulation
         self.priority: int = 0  # reserved for scheduling
         self.seed = None  # optional seed for reproducibility
