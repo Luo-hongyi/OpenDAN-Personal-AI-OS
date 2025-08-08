@@ -11,10 +11,12 @@ import base64
 import requests
 from openai._types import NOT_GIVEN
 import random
+from enum import Enum
+from typing import List, Dict, Any, Optional, Union
 
-from aios import ComputeTask, ComputeTaskResult, ComputeTaskState, ComputeTaskType,ComputeTaskResultCode,ComputeNode,AIStorage,UserConfig
+from aios.proto.compute_task_test import ComputeTask, ComputeTaskType, ComputeTaskState, ComputeTaskResult, ComputeTaskResultCode
+from aios.frame.compute_node import ComputeNode
 from aios import image_utils
-
 logger = logging.getLogger(__name__)
 
 
@@ -37,12 +39,20 @@ class TestComputeNode(ComputeNode):
         self.node_id = "test_node"
         self.task_queue = Queue()
 
-        self.support_task_types = []
-        self.mock_running_time = {} # taks_type -> running_time in seconds
-        self.mock_error_rate = {}  # task_type -> error rate
-        self.mock_task_load = {}  # task_type -> load
-        self.ability = 10 # the ability to handel the task, the larger the number, a task can ba handle better
-        self.current_load = 0 # the current load of the node, the larger the number, the more busy the node is
+        self.support_task_types = [] # list of task types that this node can handle
+        # node characteristics for testing
+        self.ability: float = 10.0
+        self.price_per_token: float = 0.0
+        self.capacity_concurrent: int = 1
+        self.fault_error_rate: float = 0.0
+        self.compute_error_rate_base: float = 0.0
+        self.compute_error_curve_coef: float = 0.0
+        self.jitter_ms_range = (0, 0)
+
+        # dynamic load indicators
+        self.pending_task_count: int = 0
+        self.pending_task_total_runtime_ms: float = 0.0
+        self.in_flight_task_count: int = 0
 
     async def initial(self):
         self.start()
@@ -50,7 +60,19 @@ class TestComputeNode(ComputeNode):
 
     async def push_task(self, task: ComputeTask, proiority: int = 0):
         logger.info(f"{self.node_id} push task: {task.display()}")
-        self.current_load += self.mock_task_load.get(task.task_type)
+        # stamp assignment and schedule time
+        try:
+            task.assigned_node_id = self.node_id
+            if getattr(task, "scheduled_at", None) is None:
+                task.scheduled_at = asyncio.get_event_loop().time()
+        except Exception:
+            pass
+        # update pending metrics
+        self.pending_task_count += 1
+        try:
+            self.pending_task_total_runtime_ms += float(getattr(task, "runtime_ms", 0.0) or 0.0)
+        except Exception:
+            pass
         self.task_queue.put_nowait(task)
 
     async def remove_task(self, task_id: str):
@@ -72,19 +94,70 @@ class TestComputeNode(ComputeNode):
         logger.info(f"call {model_name} input: {input}")
 
         if task.task_type in self.support_task_types:
-            try:   
-                await asyncio.sleep(self.mock_running_time.get(task.task_type))  # simulate running time
+            try:
+                # timestamps
+                now_ts = asyncio.get_event_loop().time()
+                if getattr(task, "scheduled_at", None) is None:
+                    task.scheduled_at = now_ts
+                task.started_at = now_ts
 
-                # randomly throw an error to test error handling
-                if random.random() < self.mock_error_rate.get(task.task_type):
-                    raise ValueError("Random error occurred")
+                # simulate fault error first
+                if random.random() < self.fault_error_rate:
+                    result.result_code = ComputeTaskResultCode.ERROR
+                    result.error_str = "fault_error"
+                    result.error_type = "fault"
+                    task.state = ComputeTaskState.ERROR
+                    return result
+
+                # compute execution time based on difficulty vs ability
+                base_ms = float(getattr(task, "runtime_ms", 0.0) or 0.0)
+                difficulty = float(getattr(task, "difficulty", 0.0) or 0.0)
+                ability = float(self.ability or 0.0)
+                alpha = 1.0
+                scale = 1.0 + alpha * max(0.0, (difficulty - ability)) / 10.0
+                jitter_min, jitter_max = self.jitter_ms_range if isinstance(self.jitter_ms_range, tuple) else (0, 0)
+                jitter = random.uniform(jitter_min, jitter_max)
+                exec_ms = max(0.0, base_ms * scale + jitter)
+                await asyncio.sleep(exec_ms / 1000.0)
+
+                # compute error probability (LLM wrong answer)
+                compute_err_prob = self.compute_error_rate_base + self.compute_error_curve_coef * max(0.0, (difficulty - ability)) / 10.0
+                if random.random() < compute_err_prob:
+                    result.result_code = ComputeTaskResultCode.ERROR
+                    result.error_str = "compute_error"
+                    result.error_type = "compute"
+                    task.state = ComputeTaskState.ERROR
+                    return result
+
+                # success
+                task.state = ComputeTaskState.DONE
+                result.result_code = ComputeTaskResultCode.OK
+                result.worker_id = self.node_id
+                result.result_str = "finished"
+                result.error_type = "none"
+
+                # fill metrics
+                task.finished_at = asyncio.get_event_loop().time()
+                if task.started_at is not None and task.scheduled_at is not None:
+                    task.queue_wait_ms = max(0.0, (task.started_at - task.scheduled_at) * 1000.0)
+                task.exec_ms = exec_ms
+                if task.finished_at is not None and task.scheduled_at is not None:
+                    task.total_latency_ms = max(0.0, (task.finished_at - task.scheduled_at) * 1000.0)
+
+                # quality & cost
+                beta = 1.0
+                noise = random.uniform(-0.2, 0.2)
+                quality = max(0.0, min(10.0, 10.0 - beta * max(0.0, difficulty - ability) + noise))
+                result.quality_score = quality
+                input_tokens = int(getattr(task, "input_tokens", 0) or 0)
+                result.cost = float(self.price_per_token or 0.0) * float(input_tokens)
 
             except Exception as e:
                 logger.error(f"{self.node_id} node run {task.task_type} task error: {e}")
                 task.state = ComputeTaskState.ERROR
                 task.error_str = str(e)
                 result.error_str = str(e)
-                self.current_load -= self.mock_task_load.get(task.task_type)
+                result.error_type = "fault"
                 return result
 
         logger.info("A node response: finished")
@@ -92,7 +165,6 @@ class TestComputeNode(ComputeNode):
         result.result_code = ComputeTaskResultCode.OK
         result.worker_id = self.node_id
         result.result_str = "finished"
-        self.current_load -= self.mock_task_load.get(task.task_type)
         return result
 
 
@@ -122,6 +194,7 @@ class TestComputeNode(ComputeNode):
         pass
 
     def is_support(self, task: ComputeTask) -> bool:
+        logger.info(f"task type: {task.task_type}, support task types: {self.support_task_types}")
         if task.task_type in self.support_task_types:
             return True
         return False

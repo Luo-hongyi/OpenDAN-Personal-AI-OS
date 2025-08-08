@@ -41,6 +41,7 @@ class ContentType(Enum):
     BASE64 = "base64"  # base64 encoded content
     URL = "url"  # URL to external content
     NDN_NAME = "ndn_name"  # NDN name for content
+    MSG = "msg" # message id
 
 class ContextType(Enum):
     # context type describe the relationship between the message and the context
@@ -71,6 +72,21 @@ class AgentMsg:
         self.source: Dict[str, SenderType] = {} # the source of msg, different from sender when the msg is forwarded by sender
         self.receivers: Dict[str, SenderType] = {}
 
+        # payload
+        self.msg_type: MessageType = msg_type # different message types have different types of content
+        self.content_type: str = ContentType.TEXT
+        self.body: Any = None  # Can be any type of content, e.g. text, object, etc. the conten
+
+        # External context
+        self.session_topic: str = None  # Topic for session management
+        self.thread_topic: str = None  # Topic for thread management
+        self.context_objects: Dict[ContextType, Dict[Any, ContentType]] = None # Context objects related to the message, e.g. attachments, mentions, etc.
+
+        # Internal log
+        self.function_call_chain: List[str] = None
+        self.reasoning_chain: List[str] = None
+
+        # metadata
         self.metadata: Dict[str, Any] = None
         """
         the metadata include optional fields that can be used to store additional information about the message
@@ -102,20 +118,6 @@ class AgentMsg:
             "response_interval": float,  # response interval for the message
         }
         """
-
-        # payload
-        self.msg_type: MessageType = msg_type # different message types have different types of content
-        self.content_type: str = ContentType.TEXT
-        self.body: Any = None  # Can be any type of content, e.g. text, object, etc. the conten
-
-        # External context
-        self.session_topic: str = None  # Topic for session management
-        self.thread_topic: str = None  # Topic for thread management
-        self.context_objects: Dict[ContextType, Dict[Any, ContentType]] = None # Context objects related to the message, e.g. attachments, mentions, etc.
-
-        # Internal log
-        self.function_call_chain: List[str] = None
-        self.reasoning_chain: List[str] = None
 
     def create_agent_request(self, body: Any, content_type: ContentType, metadata: Optional[Dict[str, Any]] = None) -> 'AgentMsg':
         """
@@ -201,4 +203,25 @@ class AgentMsg:
             self.function_call_chain = function_call_chain
         if reasoning_chain is not None:
             self.reasoning_chain = reasoning_chain
+
+    def to_json(self) -> Dict[str, Any]:
+        """
+        Convert the message to a JSON serializable dictionary.
+        """
+        return {
+            "msg_id": self.msg_id,
+            "ts": self.ts,
+            "sender": self.sender,
+            "source": self.source,
+            "receivers": self.receivers,
+            "msg_type": self.msg_type.value,
+            "content_type": self.content_type.value,
+            "body": self.body,
+            "session_topic": self.session_topic,
+            "thread_topic": self.thread_topic,
+            "context_objects": {k.value: v for k, v in (self.context_objects or {}).items()},
+            "function_call_chain": self.function_call_chain,
+            "reasoning_chain": self.reasoning_chain,
+            "metadata": self.metadata
+        }
     

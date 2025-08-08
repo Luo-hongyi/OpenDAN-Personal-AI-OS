@@ -281,9 +281,21 @@ class ComputeTask:
         self.error_str = None
 
         """the following fields are only used in compute kernel testing"""
-        self.difficulty = 0 # 0-10
-        self.load = 0 # the load to handel the task
-        self.score = 0 # 0-10
+        # task characteristics (per-task, independent of node)
+        self.difficulty: float = 0.0  # 0-10
+        self.runtime_ms: float = 0.0  # baseline exec time at reference ability, not including queue wait
+        self.input_tokens: int = 0  # for cost simulation
+        self.priority: int = 0  # reserved for scheduling
+        self.seed = None  # optional seed for reproducibility
+
+        # scheduling/execution trace (filled during scheduling/execution)
+        self.assigned_node_id: str | None = None
+        self.scheduled_at: float | None = None
+        self.started_at: float | None = None
+        self.finished_at: float | None = None
+        self.queue_wait_ms: float = 0.0
+        self.exec_ms: float = 0.0
+        self.total_latency_ms: float = 0.0
 
     def set_llm_params(self, prompts, resp_mode,model_name, max_token_size, inner_functions = None, callchain_id=None):
         self.task_type = ComputeTaskType.LLM_COMPLETION
@@ -372,6 +384,12 @@ class ComputeTaskResult:
 
         self.result_refers: dict = {}
         self.pading_data: bytearray = None
+
+        # testing metrics
+        self.quality_score: float = 0.0
+        self.cost: float = 0.0
+        # error_type: "none" | "fault" | "compute"
+        self.error_type: str = "none"
 
 
     def set_from_task(self, task: ComputeTask):
