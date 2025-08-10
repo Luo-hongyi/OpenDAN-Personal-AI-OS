@@ -309,7 +309,7 @@ class OpenAI_ComputeNode(ComputeNode):
             if not task.params["model_name"]:
                 return True
             model_name : str = task.params["model_name"]
-            if model_name.startswith("gpt-"):
+            if model_name.startswith("gpt-") or model_name.startswith("o"):
                 return True
 
         if task.task_type == ComputeTaskType.IMAGE_2_TEXT:

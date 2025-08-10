@@ -8,7 +8,7 @@ from asyncio import Queue
 from typing import Optional,Tuple,List
 from abc import ABC, abstractmethod
 
-from ..proto.compute_task import *
+from ..proto.compute_task_test import *
 from ..proto.agent_msg import *
 from ..proto.ai_function import *
 

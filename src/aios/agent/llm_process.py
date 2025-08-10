@@ -5,7 +5,7 @@ import os.path
 from .chatsession import AIChatSession
 from ..utils import video_utils,image_utils
 
-from ..proto.compute_task import LLMPrompt,LLMResult,ComputeTaskResult,ComputeTaskResultCode
+from ..proto.compute_task_test import LLMPrompt,LLMResult,ComputeTaskResult,ComputeTaskResultCode
 from ..proto.ai_function import AIFunction,AIAction,ActionNode
 from ..proto.agent_msg import AgentMsg,AgentMsgType
 
@@ -178,7 +178,7 @@ class BaseLLMProcess(ABC):
         max_result_token = self.max_token - ComputeKernel.llm_num_tokens(prompt,self.get_llm_model_name())
         #if max_result_token < MIN_PREDICT_TOKEN_LEN:
         #    return LLMResult.from_error_str(f"prompt too long,can not predict")
-
+        logger.info(f"do_llm_completion with max_result_token:{max_result_token},resp_mode:{resp_mode},prompt:{prompt}")
         task_result: ComputeTaskResult = await (ComputeKernel.get_instance().do_llm_completion(
                 prompt,
                 resp_mode=resp_mode,

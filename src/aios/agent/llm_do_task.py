@@ -1,4 +1,4 @@
-from ..proto.compute_task import LLMPrompt,LLMResult,ComputeTaskResult,ComputeTaskResultCode
+from ..proto.compute_task_test import LLMPrompt,LLMResult,ComputeTaskResult,ComputeTaskResultCode
 from ..proto.ai_function import AIFunction,AIAction,ActionNode
 from ..proto.agent_msg import AgentMsg,AgentMsgType
 from ..proto.agent_task import AgentTask, AgentTodo, AgentWorkLog

@@ -10,7 +10,7 @@ from typing import Optional
 import aiosqlite
 
 from ..agent.llm_context import GlobaToolsLibrary
-from ..proto.compute_task import *
+from ..proto.compute_task_test import *
 from ..proto.ai_function import *
 from ..frame.compute_kernel import ComputeKernel
 from ..frame.contact_manager import ContactManager,Contact

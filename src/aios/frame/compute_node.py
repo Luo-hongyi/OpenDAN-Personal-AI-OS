@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from ..proto.compute_task import ComputeTask, ComputeTaskType
+from ..proto.compute_task_test import ComputeTask, ComputeTaskType
 
 class ComputeNode(ABC):
     def __init__(self) -> None:
