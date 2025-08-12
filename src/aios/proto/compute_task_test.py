@@ -22,13 +22,23 @@ class ComputeTaskResultCode(Enum):
     NO_WORKER = 2
     ERROR = 3
 
-
 class ComputeTaskState(Enum):
     DONE = 0
     INIT = 1
     RUNNING = 2
     ERROR = 3
     PENDING = 4
+
+
+class ComputeTaskPriority(Enum):
+    """Priority levels for compute tasks.
+
+    Only two levels are defined for now:
+    - LOW: Default/background tasks; tolerant to latency.
+    - HIGH: Interactive/latency-sensitive tasks.
+    """
+    LOW = "low"
+    HIGH = "high"
 
 class ComputeTaskType(Enum):
     NONE = "None"
@@ -41,6 +51,8 @@ class ComputeTaskType(Enum):
     IMAGE_2_IMAGE = "image_2_image"
     VOICE_2_TEXT = "voice_2_text"
     TEXT_2_VOICE = "text_2_voice"
+
+## Deprecated duplicate enum removed; use the LOW/HIGH based ComputeTaskPriority above.
 
 
 # class Function(TypedDict, total=False):
@@ -285,7 +297,9 @@ class ComputeTask:
         self.difficulty: float = 0.0  # 0-10
         self.runtime_ms: float = 0.0  # execution time only (not including queue wait)
         self.input_tokens: int = 0  # for cost simulation
-        self.priority: int = 0  # reserved for scheduling
+        # Priority can be either a string, enum, or legacy int
+        # Default to LOW to remain safe for background tasks if unspecified.
+        self.priority = "low"  # type: ignore[assignment]
         self.seed = None  # optional seed for reproducibility
 
         # scheduling/execution trace (filled during scheduling/execution)
@@ -297,7 +311,7 @@ class ComputeTask:
         self.exec_ms: float = 0.0
         self.total_latency_ms: float = 0.0
 
-    def set_llm_params(self, prompts, resp_mode,model_name, max_token_size, inner_functions = None, callchain_id=None):
+    def set_llm_params(self, prompts, resp_mode,model_name, max_token_size, inner_functions = None, callchain_id=None, priority = "low"):
         self.task_type = ComputeTaskType.LLM_COMPLETION
         self.create_time = time.time()
         self.task_id = uuid.uuid4().hex
@@ -314,8 +328,10 @@ class ComputeTask:
 
         if inner_functions is not None:
             self.params["inner_functions"] = inner_functions
+        
+        self.priority = priority
 
-    def set_text_embedding_params(self, input: str, model_name=None, callchain_id = None):
+    def set_text_embedding_params(self, input: str, model_name=None, callchain_id = None, priority = "low"):
         self.task_type = ComputeTaskType.TEXT_EMBEDDING
         self.create_time = time.time()
         self.task_id = uuid.uuid4().hex
@@ -325,8 +341,9 @@ class ComputeTask:
         else:
             self.params["model_name"] = "text-embedding-ada-002"
         self.params["input"] = input
+        self.priority = priority
 
-    def set_image_embedding_params(self, input = Union[ObjectID, bytes], model_name=None, callchain_id = None):
+    def set_image_embedding_params(self, input = Union[ObjectID, bytes], model_name=None, callchain_id = None, priority = "low"):
         self.task_type = ComputeTaskType.IMAGE_EMBEDDING
         self.create_time = time.time()
         self.task_id = uuid.uuid4().hex
@@ -336,8 +353,9 @@ class ComputeTask:
         else:
             self.params["model_name"] = None
         self.params["input"] = input
+        self.priority = priority
 
-    def set_text_2_image_params(self, prompt: str, model_name, negative_prompt="", callchain_id=None):
+    def set_text_2_image_params(self, prompt: str, model_name, negative_prompt="", callchain_id=None, priority = "low"):
         self.task_type = ComputeTaskType.TEXT_2_IMAGE
         self.create_time = time.time()
         self.task_id = uuid.uuid4().hex
@@ -348,8 +366,9 @@ class ComputeTask:
             self.params["model_name"] = model_name
         else:
             self.params["model_name"] = "v1-5-pruned-emaonly"
+        self.priority = priority
 
-    def set_image_2_text_params(self, image_path: str, prompt: str, model_name, negative_prompt="", callchain_id=None):
+    def set_image_2_text_params(self, image_path: str, prompt: str, model_name, negative_prompt="", callchain_id=None, priority = "low"):
         self.task_type = ComputeTaskType.IMAGE_2_TEXT
         self.create_time = time.time()
         self.task_id = uuid.uuid4().hex
@@ -364,6 +383,7 @@ class ComputeTask:
             self.params["model_name"] = model_name
         else:
             self.params["model_name"] = "gpt-4-vision-preview"
+        self.priority = priority
 
 
     def display(self) -> str:

@@ -149,11 +149,11 @@ class ComputeKernel:
         pass
 
     # friendly interface for use:
-    def llm_completion(self, prompt: LLMPrompt, resp_mode:str="text",model_name: Optional[str] = None, max_token: int = 0,inner_functions = None):
+    def llm_completion(self, prompt: LLMPrompt, resp_mode:str="text",model_name: Optional[str] = None, max_token: int = 0,inner_functions = None, priority = "low"):
         # craete a llm_work_task ,push on queue's end
         # then task_schedule would run this task.(might schedule some work_task to another host)
         task_req = ComputeTask()
-        task_req.set_llm_params(prompt,resp_mode,model_name, max_token,inner_functions)
+        task_req.set_llm_params(prompt,resp_mode,model_name, max_token,inner_functions, priority)
         self.run(task_req)
         return task_req
 
@@ -185,19 +185,19 @@ class ComputeKernel:
             return time_out_result
 
 
-    async def do_llm_completion(self, prompt: LLMPrompt,resp_mode:str="text", mode_name: Optional[str]=None, max_token:int=0, inner_functions=None, timeout=60) -> str:
-        task_req = self.llm_completion(prompt, resp_mode,mode_name, max_token,inner_functions)
+    async def do_llm_completion(self, prompt: LLMPrompt,resp_mode:str="text", mode_name: Optional[str]=None, max_token:int=0, inner_functions=None, timeout=60, priority = "low") -> str:
+        task_req = self.llm_completion(prompt, resp_mode,mode_name, max_token,inner_functions, priority)
         return await self._wait_task(task_req, timeout)
 
 
-    def text_embedding(self,input:str,model_name:Optional[str] = None):
+    def text_embedding(self,input:str,model_name:Optional[str] = None, priority = "low"):
         task_req = ComputeTask()
-        task_req.set_text_embedding_params(input,model_name)
+        task_req.set_text_embedding_params(input,model_name, priority=priority)
         self.run(task_req)
         return task_req
 
-    async def do_text_embedding(self,input:str,model_name:Optional[str] = None) -> [float]:
-        task_req = self.text_embedding(input,model_name)
+    async def do_text_embedding(self,input:str,model_name:Optional[str] = None, priority = "low") -> [float]:
+        task_req = self.text_embedding(input,model_name, priority)
         task_result = await self._wait_task(task_req)
 
         if task_req.state == ComputeTaskState.DONE:
@@ -206,14 +206,14 @@ class ComputeKernel:
             logging.warning(f"do_text_embedding error: {task_req.error_str},input: {input}")
         return None
 
-    def image_embedding(self,input:ObjectID,model_name:Optional[str] = None):
+    def image_embedding(self,input:ObjectID,model_name:Optional[str] = None, priority = "low"):
         task_req = ComputeTask()
-        task_req.set_image_embedding_params(input,model_name)
+        task_req.set_image_embedding_params(input,model_name, priority=priority)
         self.run(task_req)
         return task_req
 
-    async def do_image_embedding(self,input:ObjectID,model_name:Optional[str] = None) -> [float]:
-        task_req = self.image_embedding(input,model_name)
+    async def do_image_embedding(self,input:ObjectID,model_name:Optional[str] = None, priority = "low") -> [float]:
+        task_req = self.image_embedding(input,model_name, priority)
         task_result = await self._wait_task(task_req)
 
         if task_req.state == ComputeTaskState.DONE:
@@ -228,7 +228,8 @@ class ComputeKernel:
                        age: Optional[str] = None,
                        voice_name: Optional[str] = None,
                        tone: Optional[str] = None,
-                       model_name: Optional[str] = None):
+                       model_name: Optional[str] = None,
+                       priority = "low"):
         task_req = ComputeTask()
         task_req.params["text"] = input
         task_req.params["language_code"] = language_code
@@ -238,6 +239,7 @@ class ComputeKernel:
         task_req.params["tone"] = tone
         task_req.params["model_name"] = model_name
         task_req.task_type = ComputeTaskType.TEXT_2_VOICE
+        task_req.priority = priority
         self.run(task_req)
 
         task_result = await self._wait_task(task_req)
@@ -249,13 +251,15 @@ class ComputeKernel:
                                 audio: str,
                                 model: str,
                                 prompt: Optional[str],
-                                response_format: Optional[str]):
+                                response_format: Optional[str],
+                                priority = "low"):
         task_req = ComputeTask()
         task_req.params["file"] = audio
         task_req.params["model_name"] = model
         task_req.params["prompt"] = prompt
         task_req.params["response_format"] = response_format
         task_req.task_type = ComputeTaskType.VOICE_2_TEXT
+        task_req.priority = priority
 
         self.run(task_req)
 
@@ -264,27 +268,27 @@ class ComputeKernel:
         if task_req.state == ComputeTaskState.DONE:
             return task_result
 
-    def text_2_image(self, prompt:str, model_name:Optional[str] = None, negative_prompt = None):
+    def text_2_image(self, prompt:str, model_name:Optional[str] = None, negative_prompt = None, priority = "low"):
         task = ComputeTask()
-        task.set_text_2_image_params(prompt,model_name, negative_prompt)
+        task.set_text_2_image_params(prompt,model_name, negative_prompt, priority=priority)
         self.run(task)
         return task
 
-    async def do_text_2_image(self, prompt:str, model_name:Optional[str] = None, negative_prompt = None) -> ComputeTaskResult:
-        task = self.text_2_image(prompt,model_name, negative_prompt)
+    async def do_text_2_image(self, prompt:str, model_name:Optional[str] = None, negative_prompt = None, priority = "low") -> ComputeTaskResult:
+        task = self.text_2_image(prompt,model_name, negative_prompt, priority)
         task_result = await self._wait_task(task)
 
         return task_result
         # if task_req.state == ComputeTaskState.DONE:
         #     return None, task_result
 
-    def image_2_text(self, image_path: str, prompt:str, model_name:Optional[str] = None, negative_prompt = None):
+    def image_2_text(self, image_path: str, prompt:str, model_name:Optional[str] = None, negative_prompt = None, priority = "low"):
         task = ComputeTask()
-        task.set_image_2_text_params(image_path,prompt,model_name, negative_prompt)
+        task.set_image_2_text_params(image_path,prompt,model_name, negative_prompt, priority=priority)
         self.run(task)
         return task
-    async def do_image_2_text(self, image_path: str, prompt:str, model_name:Optional[str] = None, negative_prompt = None) -> ComputeTaskResult:
-        task = self.image_2_text(image_path,prompt, model_name, negative_prompt)
+    async def do_image_2_text(self, image_path: str, prompt:str, model_name:Optional[str] = None, negative_prompt = None, priority = "low") -> ComputeTaskResult:
+        task = self.image_2_text(image_path,prompt, model_name, negative_prompt, priority)
         task = await self._wait_task(task)
         return task.result
 
